@@ -16,7 +16,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 def mjpeg_stream():
+    # FFmpeg đọc camera USB MJPEG, pipe ra image2pipe
     cmd = [
         "ffmpeg",
         "-f", "v4l2",
@@ -31,15 +34,22 @@ def mjpeg_stream():
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
 
+    buffer = b""
     while True:
-        # đọc 1 frame JPEG đầy đủ
-        data = process.stdout.read(1024)
-        if not data:
+        chunk = process.stdout.read(1024)
+        if not chunk:
             break
-        yield (
-            b"--frame\r\n"
-            b"Content-Type: image/jpeg\r\n\r\n" + data + b"\r\n"
-        )
+        buffer += chunk
+        while True:
+            # tìm start và end marker của JPEG
+            start = buffer.find(b'\xff\xd8')
+            end = buffer.find(b'\xff\xd9')
+            if start != -1 and end != -1 and end > start:
+                frame = buffer[start:end+2]
+                buffer = buffer[end+2:]
+                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame + b"\r\n"
+            else:
+                break
 
 @app.get("/video")
 def video_feed():
