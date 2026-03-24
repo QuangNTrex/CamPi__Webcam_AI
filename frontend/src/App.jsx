@@ -70,9 +70,8 @@ function App() {
     <div style={{ textAlign: "center", marginTop: "50px" }}>
       <img
         src={`${API_URL}/video`}
-        style={{ width: "640px", height: "480px", imageRendering: "auto" }}
+        style={{ width: "640px", imageRendering: "auto" }}
       />
-      <h1>🎮 Servo Control</h1>
 
       <h2>{angle}°</h2>
 
@@ -90,10 +89,11 @@ function App() {
       />
 
       <div style={{ marginTop: "20px" }}>
-        <button onClick={sendAngle}>Send</button>
         <button onClick={sendAngleNomally} style={{ marginLeft: "10px" }}>
-          Send Nomally
+          Send
         </button>
+        <button onClick={sendAngle}>Send Slower</button>
+        
       </div>
 
       <div style={{ marginTop: "20px" }}>
@@ -103,7 +103,7 @@ function App() {
         </button>
       </div>
 
-      <p style={{ marginTop: "20px", color: "green" }}>{status}</p>
+      {/* <p style={{ marginTop: "20px", color: "green" }}>{status}</p> */}
     </div>
   );
 }
