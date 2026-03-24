@@ -5,7 +5,7 @@ import cv2
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 import subprocess
-
+import time
 
 app = FastAPI()
 
@@ -73,7 +73,7 @@ def read_frames():
 
     buffer = b""
 
-    while camera_running and ffmpeg_process:
+    while camera_running and ffmpeg_process and ffmpeg_process.poll() is None:
         chunk = ffmpeg_process.stdout.read(4096)
 
         if not chunk:
@@ -111,9 +111,14 @@ def mjpeg_stream():
                 latest_frame +
                 b"\r\n"
             )
+        else: 
+            time.sleep(0.5)
 
 @app.get("/video")
 def video_feed():
+    if not camera_running:
+        start_camera()
+
     return StreamingResponse(
         mjpeg_stream(),
         media_type="multipart/x-mixed-replace; boundary=frame"
