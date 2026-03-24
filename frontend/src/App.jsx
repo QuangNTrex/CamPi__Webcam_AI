@@ -70,7 +70,7 @@ function App() {
     <div style={{ textAlign: "center", marginTop: "50px" }}>
       <img
         src={`${API_URL}/video`}
-        style={{ width: "480px" }}
+        style={{ width: "640px", height: "480px", imageRendering: "auto" }}
       />
       <h1>🎮 Servo Control</h1>
 

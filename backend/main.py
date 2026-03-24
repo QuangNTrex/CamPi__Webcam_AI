@@ -19,21 +19,26 @@ app.add_middleware(
 
 ffmpeg_process = None
 
+cmd = [
+    "ffmpeg",
+    "-fflags", "nobuffer",
+    "-flags", "low_delay",
+    "-f", "v4l2",
+    "-input_format", "mjpeg",
+    "-video_size", "640x480",
+    "-framerate", "30",
+    "-i", "/dev/video0",
+    "-f", "image2pipe",
+    "-vcodec", "mjpeg",
+    "-q:v", "5",   # tăng nhẹ compression → giảm delay
+    "-"
+]
+
 def start_ffmpeg():
     global ffmpeg_process
     if ffmpeg_process is None or ffmpeg_process.poll() is not None:
         ffmpeg_process = subprocess.Popen(
-            [
-                "ffmpeg",
-                "-f", "v4l2",
-                "-input_format", "mjpeg",
-                "-video_size", "1280x720",
-                "-framerate", "15",
-                "-i", "/dev/video0",
-                "-f", "image2pipe",
-                "-vcodec", "mjpeg",
-                "-"
-            ],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             bufsize=0
@@ -48,7 +53,7 @@ def read_frames():
 
     buffer = b""
     while True:
-        chunk = ffmpeg_process.stdout.read(1024)
+        chunk = ffmpeg_process.stdout.read(4096)
         if not chunk:
             continue
 
