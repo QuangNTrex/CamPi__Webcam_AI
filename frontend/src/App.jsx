@@ -1,121 +1,93 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [angle, setAngle] = useState(90);
+  const [status, setStatus] = useState("");
+
+  const API_URL = "http://192.168.10.1:8000"; // 🔥 đổi IP Raspberry Pi
+
+  // Gửi góc đến server
+  const sendAngle = async () => {
+    try {
+      const res = await fetch(`${API_URL}/servo/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ angle: 180 - Number(angle) }),
+      });
+
+      const data = await res.json();
+      setStatus(`Moved to ${data.angle}°`);
+    } catch (err) {
+      setStatus("Error sending request");
+      console.error(err);
+    }
+  };
+
+  // Lấy trạng thái hiện tại
+  const getStatus = async () => {
+    try {
+      const res = await fetch(`${API_URL}/servo/status`);
+      const data = await res.json();
+      setStatus(`Current angle: ${data.angle}°`);
+    } catch (err) {
+      setStatus("Error getting status");
+    }
+  };
+
+  // Center servo
+  const centerServo = async () => {
+    await fetch(`${API_URL}/servo/center`, { method: "POST" });
+    setStatus("Centered");
+  };
+
+  // Stop servo
+  const stopServo = async () => {
+    await fetch(`${API_URL}/servo/stop`, { method: "POST" });
+    setStatus("Stopped");
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div style={{ textAlign: "center", marginTop: "50px" }}>
+      <img
+        src={`${API_URL}/video`}
+        style={{ width: "480px" }}
+      />
+      <h1>🎮 Servo Control</h1>
+
+      <h2>{angle}°</h2>
+
+      <input
+        type="range"
+        min="0"
+        max="180"
+        value={angle}
+        onChange={(e) => {
+          //sendAngle();
+          setAngle(e.target.value)
+          
+        }}
+        style={{ width: "300px" }}
+      />
+
+      <div style={{ marginTop: "20px" }}>
+        <button onClick={sendAngle}>Send</button>
+        <button onClick={getStatus} style={{ marginLeft: "10px" }}>
+          Get Status
         </button>
-      </section>
+      </div>
 
-      <div className="ticks"></div>
+      <div style={{ marginTop: "20px" }}>
+        <button onClick={centerServo}>Center</button>
+        <button onClick={stopServo} style={{ marginLeft: "10px" }}>
+          Stop
+        </button>
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <p style={{ marginTop: "20px", color: "green" }}>{status}</p>
+    </div>
+  );
 }
 
-export default App
+export default App;
