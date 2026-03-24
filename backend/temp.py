@@ -1,3 +1,5 @@
+
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import servo
@@ -5,6 +7,8 @@ import cv2
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 import subprocess
+
+import threading
 
 
 app = FastAPI()
@@ -17,7 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 ffmpeg_process = None
+current_client = None
+
+lock = threading.Lock()
+condition = threading.Condition(lock)
 
 cmd = [
     "ffmpeg",
@@ -35,15 +44,32 @@ cmd = [
 ]
 
 def start_ffmpeg():
+    return subprocess.Popen(
+        [
+            "ffmpeg",
+            "-fflags", "nobuffer",
+            "-flags", "low_delay",
+            "-f", "v4l2",
+            "-input_format", "mjpeg",
+            "-video_size", "640x480",
+            "-framerate", "25",
+            "-i", "/dev/video0",
+            "-f", "image2pipe",
+            "-vcodec", "mjpeg",
+            "-"
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        bufsize=0
+    )
+
+
+def stop_ffmpeg():
     global ffmpeg_process
-    if ffmpeg_process is None or ffmpeg_process.poll() is not None:
-        ffmpeg_process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            bufsize=0
-        )
-import threading
+    if ffmpeg_process:
+        ffmpeg_process.kill()
+        ffmpeg_process = None
+
 
 latest_frame = None
 
@@ -69,21 +95,53 @@ def read_frames():
                 break
 
 # chạy thread nền
-threading.Thread(target=read_frames, daemon=True).start()
+import uuid
 
-def mjpeg_stream():
-    while True:
-        if latest_frame:
+def generate_stream(client_id):
+    global current_client, ffmpeg_process
+
+    with condition:
+        # 🔴 nếu có người đang xem → chờ
+        while current_client is not None:
+            condition.wait()
+
+        # 👉 chiếm quyền
+        current_client = client_id
+        ffmpeg_process = start_ffmpeg()
+
+    try:
+        while True:
+            chunk = ffmpeg_process.stdout.read(4096)
+            if not chunk:
+                break
+
             yield (
                 b"--frame\r\n"
                 b"Content-Type: image/jpeg\r\n\r\n" +
-                latest_frame +
+                chunk +
                 b"\r\n"
             )
+
+    except GeneratorExit:
+        # client đóng tab
+        pass
+
+    finally:
+        # 🔥 QUAN TRỌNG
+        with condition:
+            if current_client == client_id:
+                stop_ffmpeg()
+                current_client = None
+
+                # 👉 đánh thức client đang chờ
+                condition.notify_all()
+
 @app.get("/video")
 def video_feed():
+    client_id = str(uuid.uuid4())
+
     return StreamingResponse(
-        mjpeg_stream(),
+        generate_stream(client_id),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
 
