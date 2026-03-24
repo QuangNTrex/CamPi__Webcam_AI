@@ -13,6 +13,14 @@ def set_angle(data: ServoRequest):
     ).start()
     return {"status": "moving"}
 
+@router.post("/set")
+def set_angle(data: ServoRequest):
+    threading.Thread(
+        target=servo.set_angle,
+        args=(data.angle,)
+    ).start()
+    return {"status": "moving"}
+
 
 @router.get("/status")
 def status():

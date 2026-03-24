@@ -119,6 +119,23 @@ def set_angle_smart(target_angle, log=False):
         time.sleep(0.3)
         pi.set_servo_pulsewidth(SERVO_PIN, 0)
 
+def set_angle(angle: int):
+    """
+    Đặt servo đến góc cụ thể (0-180°).
+    Servo sẽ quay trực tiếp, không mượt.
+    """
+    global current_angle
+    if angle < 0:
+        angle = 0
+    elif angle > 180:
+        angle = 180
+
+    # PWM: 500-2500 µs tương ứng 0°-180°
+    pulse_width = MIN_PW + (angle / 180) * (MAX_PW - MIN_PW)
+    pi.set_servo_pulsewidth(SERVO_PIN, pulse_width)
+    current_angle = angle
+    return {"status": angle}
+
 
 # ======================
 # API HELPERS
