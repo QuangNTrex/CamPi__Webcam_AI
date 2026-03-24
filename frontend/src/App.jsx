@@ -25,6 +25,24 @@ function App() {
     }
   };
 
+  const sendAngleNomally = async () => {
+    try {
+      const res = await fetch(`${API_URL}/servo/set`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ angle: 180 - Number(angle) }),
+      });
+
+      const data = await res.json();
+      setStatus(`Moved to ${data.angle}°`);
+    } catch (err) {
+      setStatus("Error sending request");
+      console.error(err);
+    }
+  };
+
   // Lấy trạng thái hiện tại
   const getStatus = async () => {
     try {
@@ -73,8 +91,8 @@ function App() {
 
       <div style={{ marginTop: "20px" }}>
         <button onClick={sendAngle}>Send</button>
-        <button onClick={getStatus} style={{ marginLeft: "10px" }}>
-          Get Status
+        <button onClick={sendAngleNomally} style={{ marginLeft: "10px" }}>
+          Send Nomally
         </button>
       </div>
 
