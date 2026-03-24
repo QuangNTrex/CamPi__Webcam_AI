@@ -28,6 +28,7 @@ ffmpeg_process = subprocess.Popen([
     "-i", "/dev/video0",
     "-f", "image2pipe",
     "-vcodec", "mjpeg",
+    "-q:v", "2",
     "-"
 ],
     stdout=subprocess.PIPE,
