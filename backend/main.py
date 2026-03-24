@@ -18,9 +18,9 @@ app.add_middleware(
 )
 
 
-def mjpeg_stream():
-    # FFmpeg đọc camera USB MJPEG, pipe ra image2pipe
-    cmd = [
+# ❗ FFmpeg process duy nhất
+ffmpeg_process = subprocess.Popen(
+    [
         "ffmpeg",
         "-f", "v4l2",
         "-input_format", "mjpeg",
@@ -30,18 +30,20 @@ def mjpeg_stream():
         "-f", "image2pipe",
         "-vcodec", "mjpeg",
         "-"
-    ]
+    ],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.DEVNULL,
+    bufsize=0
+)
 
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, bufsize=0)
-
+def mjpeg_stream():
     buffer = b""
     while True:
-        chunk = process.stdout.read(1024)
+        chunk = ffmpeg_process.stdout.read(1024)
         if not chunk:
             break
         buffer += chunk
         while True:
-            # tìm start và end marker của JPEG
             start = buffer.find(b'\xff\xd8')
             end = buffer.find(b'\xff\xd9')
             if start != -1 and end != -1 and end > start:
@@ -57,7 +59,6 @@ def video_feed():
         mjpeg_stream(),
         media_type="multipart/x-mixed-replace; boundary=frame"
     )
-
 
 # include router
 app.include_router(servo.router)
