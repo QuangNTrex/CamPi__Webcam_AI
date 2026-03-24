@@ -19,18 +19,17 @@ app.add_middleware(
 
 
 # ❗ FFmpeg process duy nhất
-ffmpeg_process = subprocess.Popen(
-    [
-        "ffmpeg",
-        "-f", "v4l2",
-        "-input_format", "mjpeg",
-        "-video_size", "640x480",
-        "-framerate", "15",
-        "-i", "/dev/video0",
-        "-f", "image2pipe",
-        "-vcodec", "mjpeg",
-        "-"
-    ],
+ffmpeg_process = subprocess.Popen([
+    "ffmpeg",
+    "-f", "v4l2",
+    "-input_format", "mjpeg",
+    "-video_size", "1280x720",
+    "-framerate", "30",
+    "-i", "/dev/video0",
+    "-f", "image2pipe",
+    "-vcodec", "mjpeg",
+    "-"
+],
     stdout=subprocess.PIPE,
     stderr=subprocess.DEVNULL,
     bufsize=0
