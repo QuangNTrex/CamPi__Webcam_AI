@@ -134,6 +134,8 @@ def set_angle(angle: int):
     pulse_width = MIN_PW + (angle / 180) * (MAX_PW - MIN_PW)
     pi.set_servo_pulsewidth(SERVO_PIN, pulse_width)
     current_angle = angle
+    time.sleep(0.4)
+    pi.set_servo_pulsewidth(SERVO_PIN, 0)
     return {"status": angle}
 
 
