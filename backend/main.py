@@ -17,59 +17,90 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import threading
+import subprocess
+
 ffmpeg_process = None
+latest_frame = None
+camera_running = False
 
-cmd = [
-    "ffmpeg",
-    "-fflags", "nobuffer",
-    "-flags", "low_delay",
-    "-f", "v4l2",
-    "-input_format", "mjpeg",
-    "-video_size", "1920x1080",
-    "-framerate", "30",
-    "-i", "/dev/video0",
-    "-f", "image2pipe",
-    "-vcodec", "mjpeg",
-    "-q:v", "5",   # tăng nhẹ compression → giảm delay
-    "-"
-]
+lock = threading.Lock()
 
-def start_ffmpeg():
-    global ffmpeg_process
-    if ffmpeg_process is None or ffmpeg_process.poll() is not None:
+def start_camera():
+    global ffmpeg_process, camera_running
+
+    with lock:
+        if camera_running:
+            return
+
         ffmpeg_process = subprocess.Popen(
-            cmd,
+            [
+                "ffmpeg",
+                "-fflags", "nobuffer",
+                "-flags", "low_delay",
+                "-f", "v4l2",
+                "-input_format", "mjpeg",
+                "-video_size", "640x480",  # ⚠️ giảm cho ổn định
+                "-framerate", "25",
+                "-i", "/dev/video0",
+                "-f", "image2pipe",
+                "-vcodec", "mjpeg",
+                "-q:v", "5",
+                "-"
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.DEVNULL,
             bufsize=0
         )
-import threading
 
-latest_frame = None
+        camera_running = True
+
+        threading.Thread(target=read_frames, daemon=True).start()
+
+def stop_camera():
+    global ffmpeg_process, camera_running, latest_frame
+
+    with lock:
+        if ffmpeg_process:
+            ffmpeg_process.kill()
+            ffmpeg_process = None
+
+        latest_frame = None
+        camera_running = False
 
 def read_frames():
-    global latest_frame
-    start_ffmpeg()
+    global latest_frame, ffmpeg_process, camera_running
 
     buffer = b""
-    while True:
+
+    while camera_running and ffmpeg_process:
         chunk = ffmpeg_process.stdout.read(4096)
+
         if not chunk:
             continue
 
         buffer += chunk
+
         while True:
             start = buffer.find(b'\xff\xd8')
             end = buffer.find(b'\xff\xd9')
+
             if start != -1 and end != -1 and end > start:
                 frame = buffer[start:end+2]
                 buffer = buffer[end+2:]
                 latest_frame = frame
             else:
                 break
+@app.post("/camera/start")
+def api_start_camera():
+    start_camera()
+    return {"status": "camera started"}
 
-# chạy thread nền
-threading.Thread(target=read_frames, daemon=True).start()
+
+@app.post("/camera/stop")
+def api_stop_camera():
+    stop_camera()
+    return {"status": "camera stopped"}
 
 def mjpeg_stream():
     while True:
@@ -80,6 +111,7 @@ def mjpeg_stream():
                 latest_frame +
                 b"\r\n"
             )
+
 @app.get("/video")
 def video_feed():
     return StreamingResponse(

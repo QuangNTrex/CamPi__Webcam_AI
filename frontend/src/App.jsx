@@ -54,6 +54,8 @@ function App() {
     }
   };
 
+  
+
   // Center servo
   const centerServo = async () => {
     await fetch(`${API_URL}/servo/center`, { method: "POST" });
@@ -65,7 +67,12 @@ function App() {
     await fetch(`${API_URL}/servo/stop`, { method: "POST" });
     setStatus("Stopped");
   };
-
+  const startCamera = () => {
+    fetch(`${API_URL}/camera/start`, { method: "POST" });
+  }
+  const stopCamera = () => {
+    fetch(`${API_URL}/camera/stop`, { method: "POST" });
+  }
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
       <img
@@ -90,17 +97,17 @@ function App() {
       />
 
       <div style={{ marginTop: "20px" }}>
-        <button onClick={sendAngleNomally} style={{ marginLeft: "10px" }}>
+        <button onClick={sendAngleNomally}>
           Send
         </button>
-        <button onClick={sendAngle}>Send Slower</button>
+        <button onClick={sendAngle}  style={{ marginLeft: "10px" }}>Send Slower</button>
         
       </div>
 
       <div style={{ marginTop: "20px" }}>
-        <button onClick={centerServo}>Center</button>
-        <button onClick={stopServo} style={{ marginLeft: "10px" }}>
-          Stop
+        <button onClick={startCamera}>Start Camera</button>
+        <button onClick={stopCamera} style={{ marginLeft: "10px" }}>
+          Stop Camêra
         </button>
       </div>
 
