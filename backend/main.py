@@ -5,6 +5,7 @@ import cv2
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 import subprocess
+import time
 
 
 app = FastAPI()
@@ -49,27 +50,32 @@ latest_frame = None
 
 def read_frames():
     global latest_frame
-    start_ffmpeg()
 
     buffer = b""
+
     while True:
+        if ffmpeg_process is None or ffmpeg_process.poll() is not None:
+            start_ffmpeg()
+
         chunk = ffmpeg_process.stdout.read(4096)
         if not chunk:
             continue
 
         buffer += chunk
+
         while True:
             start = buffer.find(b'\xff\xd8')
             end = buffer.find(b'\xff\xd9')
+
             if start != -1 and end != -1 and end > start:
-                frame = buffer[start:end+2]
+                latest_frame = buffer[start:end+2]
                 buffer = buffer[end+2:]
-                latest_frame = frame
             else:
                 break
-
 # chạy thread nền
 threading.Thread(target=read_frames, daemon=True).start()
+
+
 
 def mjpeg_stream():
     while True:
@@ -80,6 +86,8 @@ def mjpeg_stream():
                 latest_frame +
                 b"\r\n"
             )
+        time.sleep(0.01)
+
 @app.get("/video")
 def video_feed():
     return StreamingResponse(
