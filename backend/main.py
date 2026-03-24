@@ -25,7 +25,7 @@ cmd = [
     "-flags", "low_delay",
     "-f", "v4l2",
     "-input_format", "mjpeg",
-    "-video_size", "640x480",
+    "-video_size", "1920x1080",
     "-framerate", "30",
     "-i", "/dev/video0",
     "-f", "image2pipe",
