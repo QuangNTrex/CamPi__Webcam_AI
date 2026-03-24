@@ -80,6 +80,7 @@ function App() {
         min="0"
         max="180"
         value={angle}
+        onDoubleClick={sendAngleNomally}
         onChange={(e) => {
           //sendAngle();
           setAngle(e.target.value)
